@@ -15,7 +15,7 @@ from MATH_Trys.MATH_utils import *
 from utils import *
 
 # client定义需要满足如下调用方式: client.chat.completions.create(model,messages = messages), 详见askLLM函数
-openaiClient = setOpenAi(keyid = 0)
+openaiClient = setCloud()
 llamaClient = setLocal()
 clients = {'gpt': openaiClient, 'llama': llamaClient}
 aftername = "final_version-step1"
