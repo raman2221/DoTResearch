@@ -8,6 +8,11 @@ import sys
 import openai
 from openai import OpenAI
 
+from claude_cli_client import ClaudeCliClient
+
+# The allocator uses the paper's Llama names; Ollama only knows the tag you pulled (see `ollama list`).
+LOCAL_MODEL = os.environ.get("DOT_LOCAL_MODEL", "llama3.1:latest")
+
 
 def askChatGPT(messages, model="gpt-3.5-turbo", temperature = 1, max_tokens=200):
     response = openai.ChatCompletion.create(
@@ -29,12 +34,11 @@ def askLLM(clients, messages, tokens_path, model="gpt-3.5-turbo", temperature = 
         print("SLMC GPT In here")
         #print("model: ", model)
         response = client.chat.completions.create(
-                model = 'gpt-4o',
+                model = model,
                 messages = messages,
                 temperature = temperature,
                 max_tokens = max_tokens,
             )
-        model ='gpt-4o'
         update_token_usage(model, response.usage.prompt_tokens, response.usage.completion_tokens, file_path=tokens_path)
         answer = response.choices[0].message.content
         
@@ -42,7 +46,7 @@ def askLLM(clients, messages, tokens_path, model="gpt-3.5-turbo", temperature = 
         client = clients['llama']  # llama系列共用一个client
         print("SLMC llama In here")
         response = client.chat.completions.create(
-                model = model, 
+                model = LOCAL_MODEL,
                 messages = messages,
                 temperature = temperature,
                 max_tokens = max_tokens,
@@ -143,15 +147,18 @@ def addtoken(num):
         pass
 
     
-def setOpenAi(keyid = 0):
-    # set your openai key here.
-    """if keyid == 0:
-        api_key = ""
-    client = OpenAI(api_key=api_key)
-    addtoken(-1)"""
+def setCloud():
+    # DOT_CLOUD_BACKEND=openai switches back to the paper's setup once an OpenAI key is available.
+    backend = os.environ.get("DOT_CLOUD_BACKEND", "claude")
+    if backend == "claude":
+        return ClaudeCliClient()
+    if backend == "openai":
+        return setOpenAi()
+    raise ValueError(f"Unknown DOT_CLOUD_BACKEND '{backend}'; use 'claude' or 'openai'.")
 
-    api_key = ""
-    
+
+def setOpenAi(keyid = 0):
+    api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError(
             "OPENAI_API_KEY is not set. "
